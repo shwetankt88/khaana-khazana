@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Favorites{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="section-title text-center mb-4"><i class="fas fa-heart text-danger"></i> My Favorites</h1>
+
+    {% if favorites %}
+    <div class="row g-4">
+        {% for fav in favorites %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card recipe-card glass-card h-100">
+                {% if fav.recipe.image %}
+                <div class="recipe-img-wrapper">
+                    <img src="{{ fav.recipe.image.url }}" class="card-img-top recipe-img" alt="{{ fav.recipe.title }}">
+                    <div class="recipe-badges">
+                        {% if fav.recipe.is_vegetarian %}<span class="badge bg-success">🌿 Veg</span>{% endif %}
+                        {% if fav.recipe.is_vegan %}<span class="badge bg-info">🌱 Vegan</span>{% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ fav.recipe.title }}</h5>
+                    <p class="card-text text-muted small">{{ fav.recipe.description|truncatewords:15 }}</p>
+                    <div class="recipe-meta mb-2">
+                        <span><i class="fas fa-clock"></i> {{ fav.recipe.total_time }}m</span>
+                        <span><i class="fas fa-signal"></i> {{ fav.recipe.get_difficulty_display }}</span>
+                    </div>
+                    <small class="text-muted">Added {{ fav.created_at|timesince }} ago</small>
+                </div>
+                <div class="card-footer bg-transparent border-0 d-flex gap-2">
+                    <a href="{% url 'recipes:detail' fav.recipe.slug %}" class="btn btn-primary flex-grow-1">View Recipe</a>
+                    <a href="{% url 'favorites:toggle' fav.recipe.slug %}" class="btn btn-outline-danger" title="Remove"><i class="fas fa-heart-broken"></i></a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-heart-broken fa-4x text-muted mb-3"></i>
+        <h3 class="text-muted">No favorites yet</h3>
+        <p class="text-muted">Browse recipes and click the heart to save your favorites!</p>
+        <a href="{% url 'recipes:list' %}" class="btn btn-primary btn-lg mt-2">Browse Recipes</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

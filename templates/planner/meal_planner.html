@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Meal Planner{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="section-title text-center mb-2"><i class="fas fa-calendar-alt"></i> Meal Planner</h1>
+
+    <!-- Week Navigation -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a href="?week={{ week_offset|add:'-1' }}" class="btn btn-outline-primary"><i class="fas fa-chevron-left"></i> Previous Week</a>
+        <h5 class="mb-0">{{ monday|date:"M d" }} – {{ monday|date:"M d"|add:"6 days" }}</h5>
+        <a href="?week={{ week_offset|add:'1' }}" class="btn btn-outline-primary">Next Week <i class="fas fa-chevron-right"></i></a>
+    </div>
+
+    <!-- Meal Grid -->
+    <div class="card glass-card p-3 mb-4">
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:100px;">Meal</th>
+                        {% for day_num, day_label in days %}
+                        <th class="text-center">{{ day_label }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for meal_type in meal_types %}
+                    <tr>
+                        <td class="fw-bold text-capitalize">{{ meal_type }}</td>
+                        {% for day_num, day_label in days %}
+                        <td class="text-center p-2">
+                            {% with key=day_num|stringformat:"d" %}
+                            {% if grid|default_if_none:"" %}
+                            {% for k, item in grid.items %}
+                            {% if item.day == day_num and item.meal_type == meal_type %}
+                            <div class="card glass-card p-2 mb-1">
+                                <small class="fw-bold">{{ item.recipe.title|truncatewords:4 }}</small>
+                                <a href="{% url 'planner:remove_meal' item.id %}?week={{ week_offset }}" class="btn btn-sm btn-outline-danger mt-1"><i class="fas fa-times"></i></a>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                            {% endif %}
+                            {% endwith %}
+                            <!-- Add Meal Button -->
+                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#addMealModal" onclick="setMealSlot({{ day_num }}, '{{ meal_type }}')">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Shopping List Link -->
+    <div class="text-center">
+        <a href="{% url 'planner:shopping_list' %}?week={{ week_offset }}" class="btn btn-primary btn-lg">
+            <i class="fas fa-shopping-cart"></i> Generate Shopping List
+        </a>
+    </div>
+</div>
+
+<!-- Add Meal Modal -->
+<div class="modal fade" id="addMealModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Meal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Select Recipe</label>
+                    <select id="recipeSelect" class="form-select">
+                        {% for recipe in recipes %}
+                        <option value="{{ recipe.slug }}">{{ recipe.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addMeal()">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedDay = 0;
+let selectedMealType = 'breakfast';
+
+function setMealSlot(day, mealType) {
+    selectedDay = day;
+    selectedMealType = mealType;
+}
+
+function addMeal() {
+    const recipeSlug = document.getElementById('recipeSelect').value;
+    window.location.href = `{% url 'planner:meal_planner' %}add/${selectedDay}/${selectedMealType}/${recipeSlug}/?week={{ week_offset }}`;
+}
+</script>
+{% endblock %}

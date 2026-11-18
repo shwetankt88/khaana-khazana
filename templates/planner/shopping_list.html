@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Shopping List{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="section-title text-center mb-2"><i class="fas fa-shopping-cart"></i> Shopping List</h1>
+    <p class="text-center text-muted mb-4">Week of {{ monday|date:"M d, Y" }}</p>
+
+    <!-- Week Navigation -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a href="?week={{ week_offset|add:'-1' }}" class="btn btn-outline-primary"><i class="fas fa-chevron-left"></i> Previous</a>
+        <a href="{% url 'planner:meal_planner' %}?week={{ week_offset }}" class="btn btn-outline-secondary"><i class="fas fa-calendar-alt"></i> Back to Planner</a>
+        <a href="?week={{ week_offset|add:'1' }}" class="btn btn-outline-primary">Next <i class="fas fa-chevron-right"></i></a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card glass-card p-4">
+                {% if ingredients %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Items to Buy</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for name, quantities in ingredients.items %}
+                    <li class="list-group-item d-flex align-items-center">
+                        <input type="checkbox" class="form-check-input me-3 shopping-check" id="item-{{ forloop.counter }}">
+                        <label for="item-{{ forloop.counter }}" class="flex-grow-1">
+                            <strong>{{ name }}</strong>
+                            <span class="text-muted ms-2">
+                                {% for qty in quantities %}{{ qty }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            </span>
+                        </label>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No items this week</h4>
+                    <p class="text-muted">Add meals to your planner to generate a shopping list.</p>
+                    <a href="{% url 'planner:meal_planner' %}?week={{ week_offset }}" class="btn btn-primary">Go to Planner</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.shopping-check').forEach(cb => {
+    cb.addEventListener('change', function() {
+        const label = this.nextElementSibling;
+        label.style.textDecoration = this.checked ? 'line-through' : 'none';
+        label.style.opacity = this.checked ? '0.5' : '1';
+    });
+});
+</script>
+{% endblock %}
