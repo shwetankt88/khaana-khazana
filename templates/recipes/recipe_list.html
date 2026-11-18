@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}All Recipes - Khaana Khazana{% endblock %}
+{% block content %}
+<div class="row mb-4">
+  <div class="col-md-8">
+    <h2>All Recipes</h2>
+  </div>
+  <!-- Search Form -->
+  <div class="col-md-4">
+    <form method="get" action="{% url 'recipes:list' %}" class="d-flex">
+      <input class="form-control me-2" type="search" name="q" placeholder="Search recipes or ingredients..." value="{{ query|default:'' }}">
+      <button class="btn btn-outline-success" type="submit">Search</button>
+    </form>
+  </div>
+</div>
+
+<!-- Category Filters -->
+<div class="mb-4">
+  <a href="{% url 'recipes:list' %}" class="btn btn-sm {% if not selected_category %}btn-dark{% else %}btn-outline-dark{% endif %} me-2 mb-2">All</a>
+  {% for cat in categories %}
+    <a href="{% url 'recipes:list' %}?category={{ cat.slug }}" class="btn btn-sm {% if selected_category == cat.slug %}btn-dark{% else %}btn-outline-dark{% endif %} me-2 mb-2">{{ cat.name }}</a>
+  {% endfor %}
+</div>
+
+<div class="row">
+  {% for recipe in recipes %}
+    <div class="col-md-4 mb-4">
+      <div class="card h-100">
+        {% if recipe.image %}
+          <img src="{{ recipe.image.url }}" class="card-img-top" alt="{{ recipe.title }}" style="height: 200px; object-fit: cover;">
+        {% endif %}
+        <div class="card-body">
+          <h5 class="card-title">{{ recipe.title }}</h5>
+          <p class="card-text text-muted">By {{ recipe.author.username }} | Category: {{ recipe.category.name|default:"General" }}</p>
+          <a href="{{ recipe.get_absolute_url }}" class="btn btn-outline-primary btn-sm">View Recipe</a>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p>No recipes found matching your criteria.</p>
+  {% endfor %}
+</div>
+{% endblock %}

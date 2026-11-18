@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block title %}{{ recipe.title }} - Khaana Khazana{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <h1>{{ recipe.title }}</h1>
+    <p class="text-muted">By <strong>{{ recipe.author.username }}</strong> | Category: {{ recipe.category.name|default:"General" }} | Prep: {{ recipe.prep_time }} mins | Cook: {{ recipe.cook_time }} mins</p>
+    
+    {% if recipe.image %}
+      <img src="{{ recipe.image.url }}" class="img-fluid rounded mb-4" alt="{{ recipe.title }}" style="max-height: 400px; width: 100%; object-fit: cover;">
+    {% endif %}
+
+    <!-- Serving Scaler Section -->
+    <div class="card p-3 mb-4 bg-light">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <strong>Servings: </strong>
+          <span id="base-servings" data-servings="{{ recipe.servings }}">{{ recipe.servings }}</span>
+        </div>
+        <div>
+          <button class="btn btn-sm btn-outline-secondary" onclick="scaleServings(-1)">-</button>
+          <span id="current-servings" class="mx-2 fw-bold">{{ recipe.servings }}</span>
+          <button class="btn btn-sm btn-outline-secondary" onclick="scaleServings(1)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <h3>Ingredients</h3>
+    <ul class="list-group mb-4" id="ingredients-list">
+      {% for ri in recipe.recipe_ingredients.all %}
+        <li class="list-group-item">
+          <span class="ingredient-qty" data-base-qty="{{ ri.quantity }}">{{ ri.quantity }}</span> of {{ ri.ingredient.name }}
+        </li>
+      {% empty %}
+        <p>No ingredients listed for this recipe.</p>
+      {% endfor %}
+    </ul>
+
+    <h3>Description</h3>
+    <p>{{ recipe.description }}</p>
+
+    <h3 class="mt-4">Instructions</h3>
+    <div id="recipe-instructions" style="white-space: pre-line;" class="fs-5 mb-4">{{ recipe.instructions }}</div>
+
+    <!-- Cooking Mode Button -->
+    <button class="btn btn-warning mb-4" data-bs-toggle="modal" data-bs-target="#cookingModeModal">👨‍🍳 Start Cooking Mode</button>
+
+    <!-- Favorite Button -->
+    {% if user.is_authenticated %}
+      <div class="mb-4">
+        <form action="{% url 'favorites:toggle' recipe.slug %}" method="post" class="d-inline">
+          {% csrf_token %}
+          {% if user_favorited %}
+            <button type="submit" class="btn btn-danger btn-sm">❤️ Remove from Favorites</button>
+          {% else %}
+            <button type="submit" class="btn btn-outline-danger btn-sm">🤍 Add to Favorites</button>
+          {% endif %}
+        </form>
+      </div>
+    {% endif %}
+
+    <!-- Average Rating Display -->
+    <div class="mb-4">
+      <h4>Average Rating: {% if avg_rating %}{{ avg_rating|floatformat:1 }} / 5 ⭐{% else %}No ratings yet{% endif %}</h4>
+    </div>
+
+    <!-- Reviews Section -->
+    <hr>
+    <h3>Reviews & Comments</h3>
+    {% if user.is_authenticated %}
+      <form method="post" action="{% url 'reviews:add_review' recipe.slug %}" class="mb-4">
+        {% csrf_token %}
+        {{ review_form.as_p }}
+        <button type="submit" class="btn btn-primary btn-sm">Submit Review</button>
+      </form>
+    {% else %}
+      <p><a href="{% url 'accounts:login' %}">Login</a> to leave a review.</p>
+    {% endif %}
+
+    <div class="list-group">
+      {% for review in reviews %}
+        <div class="list-group-item mb-2 rounded">
+          <h5 class="mb-1">{{ review.user.username }} <small class="text-muted fs-6">- {{ review.rating }} ⭐</small></h5>
+          <p class="mb-1">{{ review.comment }}</p>
+          <small class="text-muted">{{ review.created_at|date:"M d, Y" }}</small>
+        </div>
+      {% empty %}
+        <p>No reviews yet. Be the first to review this recipe!</p>
+      {% endfor %}
+    </div>
+
+    {% if user == recipe.author %}
+      <div class="mt-4">
+        <a href="{% url 'recipes:update' recipe.slug %}" class="btn btn-warning">Edit Recipe</a>
+        <a href="{% url 'recipes:delete' recipe.slug %}" class="btn btn-danger">Delete Recipe</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Cooking Mode Modal -->
+<div class="modal fade" id="cookingModeModal" tabindex="-1" aria-labelledby="cookingModeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="cookingModeModalLabel">🍳 Cooking Mode: {{ recipe.title }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <strong>Prep Time:</strong> {{ recipe.prep_time }} mins | <strong>Cook Time:</strong> {{ recipe.cook_time }} mins
+        </div>
+        <h4 class="mb-3">Step-by-Step Instructions:</h4>
+        <div id="cooking-steps" class="fs-4 lh-lg"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Exit Cooking Mode</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript for Serving Scaler & Cooking Mode -->
+<script>
+  let baseServings = parseInt(document.getElementById('base-servings').dataset.servings);
+  let currentServings = baseServings;
+
+  function scaleServings(change) {
+    currentServings += change;
+    if (currentServings < 1) currentServings = 1;
+    
+    document.getElementById('current-servings').innerText = currentServings;
+    
+    let ratio = currentServings / baseServings;
+    
+    document.querySelectorAll('.ingredient-qty').forEach(el => {
+      let baseText = el.dataset.baseQty;
+      let match = baseText.match(/^([\d\.]+)(.*)$/);
+      if (match) {
+        let num = parseFloat(match[1]);
+        let rest = match[2];
+        let scaledNum = (num * ratio).toFixed(1).replace(/\.0$/, '');
+        el.innerText = scaledNum + rest;
+      }
+    });
+  }
+
+  const instructionsText = document.getElementById('recipe-instructions').innerText;
+  const stepsContainer = document.getElementById('cooking-steps');
+  if (instructionsText.trim() !== '') {
+    let steps = instructionsText.split(/\r?\n/).filter(step => step.trim() !== '');
+    stepsContainer.innerHTML = steps.map((step, index) => `
+      <div class="p-3 mb-3 border rounded bg-light">
+        <strong>Step ${index + 1}:</strong> ${step}
+      </div>
+    `).join('');
+  }
+</script>
+{% endblock %}

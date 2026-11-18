@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }} Recipe - Khaana Khazana{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <h2>{{ action }} Recipe</h2>
+    <form method="post" enctype="multipart/form-data" class="mt-3">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn btn-success">Save Recipe</button>
+      <a href="{% url 'recipes:home' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}
